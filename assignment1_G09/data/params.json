@@ -1,0 +1,12 @@
+{
+  "min_depth": 12,
+  "min_quality": 80,
+  "priority_genes": [
+    "BRCA1",
+    "MLH1",
+    "TP53",
+    "KRAS",
+    "APC"
+  ],
+  "top_k": 6
+}
