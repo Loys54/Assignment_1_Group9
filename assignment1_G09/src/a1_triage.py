@@ -7,6 +7,7 @@ and a short text report. Nothing here is clinical advice.
 import csv
 import json
 import sys
+from io import StringIO
 from pathlib import Path
 
 DECISIONS = ("prioritize", "review", "exclude")
@@ -55,25 +56,62 @@ def triage(rows: list[dict], params: dict) -> list[dict]:
 
 
 def decision_counts(results: list[dict]) -> dict[str, int]:
-    """Number of results per decision; keys are always prioritize, review, exclude (in order)."""
-    raise NotImplementedError("TODO: implement decision_counts")
+    """Count results for each possible decision."""
+    counts = {decision: 0 for decision in DECISIONS}
+
+    for result in results:
+        counts[result["decision"]] += 1
+
+    return counts
 
 
 def impact_counts(results: list[dict]) -> dict[str, int]:
-    """Impact counts over variants that were NOT excluded.
+    """Count impact values, ignoring excluded variants."""
+    counts = {impact: 0 for impact in IMPACT_ORDER}
 
-    Keys are always high, moderate, low, modifier (in that order), zeros included.
-    """
-    raise NotImplementedError("TODO: implement impact_counts")
+    for result in results:
+        if result["decision"] == "exclude":
+            continue
+
+        impact = result["impact"].strip().casefold()
+        counts[impact] += 1
+
+    return counts
 
 
 def gene_summary(results: list[dict]) -> dict[str, dict]:
-    """Per-gene summary, genes in alphabetical order.
+    """Return counts and mean depth for every gene."""
+    statistics: dict[str, dict] = {}
 
-    Each value is {"total": n, "prioritize": a, "review": b, "exclude": c, "mean_depth": d}
-    where mean_depth is the mean depth of ALL the gene's variants, rounded to 1 decimal.
-    """
-    raise NotImplementedError("TODO: implement gene_summary")
+    for result in results:
+        gene = result["gene"].strip().upper()
+
+        if gene not in statistics:
+            statistics[gene] = {
+                "total": 0,
+                "prioritize": 0,
+                "review": 0,
+                "exclude": 0,
+                "depth_sum": 0,
+            }
+
+        statistics[gene]["total"] += 1
+        statistics[gene][result["decision"]] += 1
+        statistics[gene]["depth_sum"] += int(result["depth"])
+
+    summary: dict[str, dict] = {}
+
+    for gene in sorted(statistics):
+        data = statistics[gene]
+        summary[gene] = {
+            "total": data["total"],
+            "prioritize": data["prioritize"],
+            "review": data["review"],
+            "exclude": data["exclude"],
+            "mean_depth": round(data["depth_sum"] / data["total"], 1),
+        }
+
+    return summary
 
 
 def rank_variants(results: list[dict], k: int) -> list[dict]:
@@ -89,21 +127,45 @@ def rank_variants(results: list[dict], k: int) -> list[dict]:
 
 
 def results_to_csv(results: list[dict]) -> str:
-    """CSV text: a header line (CSV_COLUMNS) and one line per result in the given order.
+    """Convert results to CSV text with a header and one row per result."""
+    output = StringIO(newline="")
+    writer = csv.writer(output, lineterminator="\n")
+    writer.writerow(CSV_COLUMNS)
 
-    Every line ends with a newline. Reason text contains no commas, so no quoting is needed.
-    """
-    raise NotImplementedError("TODO: implement results_to_csv")
+    for result in results:
+        writer.writerow([result[column] for column in CSV_COLUMNS])
+
+    return output.getvalue()
 
 
 def build_report(results: list[dict], params: dict) -> str:
-    """Short text report; the line formats are fixed so the report can be checked.
+    """Build the required plain-text triage report."""
+    counts = decision_counts(results)
+    top_k = params["top_k"]
+    ranked = rank_variants(results, top_k)
 
-    Lines: title, 'Thresholds: min_depth=D min_quality=Q', 'Priority genes: A, B, ...',
-    'Variants: N', one 'decision: count' line per decision, a blank line,
-    'Top K variants' and then 'rank. variant | gene | impact | decision' lines.
-    """
-    raise NotImplementedError("TODO: implement build_report")
+    lines = [
+        "Variant triage report (synthetic teaching data)",
+        (
+            f"Thresholds: min_depth={params['min_depth']} "
+            f"min_quality={params['min_quality']}"
+        ),
+        f"Priority genes: {', '.join(params['priority_genes'])}",
+        f"Variants: {len(results)}",
+    ]
+
+    for decision in DECISIONS:
+        lines.append(f"{decision}: {counts[decision]}")
+
+    lines.extend(["", f"Top {top_k} variants"])
+
+    for rank, result in enumerate(ranked, start=1):
+        lines.append(
+            f"{rank}. {result['variant']} | {result['gene']} | "
+            f"{result['impact']} | {result['decision']}"
+        )
+
+    return "\n".join(lines) + "\n"
 
 
 def main(argv: list[str] | None = None) -> int:
