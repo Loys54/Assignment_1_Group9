@@ -1,26 +1,56 @@
-# SECB3203 Lab 6 - Files and exceptions: bio_io.py and batch.py
+# Variant Triage Service (SECB3203 Assignment 1)
 
-Student: <Aloysius Probo, X26EC0012>
+> Replace the text in this template. The README must let a stranger install, run and test the
+> project with the exact commands below. All data are synthetic teaching data, not clinical data.
 
-## Setup
-    python -m venv .venv
-    Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
-    .\.venv\Scripts\Activate.ps1
-    pip install -r requirements.txt
+## Group
+
+- Group ID: <your group id>
+- Members: <full name (matric)>, <full name (matric)>, <full name (matric)>
+
+## What this project does
+
+<Three or four sentences: what a variant triage service is, what goes in, what comes out.>
+
+## Set up
+
+```
+python -m venv .venv
+<activate command for your system>
+pip install -r requirements.txt
+```
 
 ## Run
-    python -m pytest                              # all tests
-    ruff check src                                # style check
-    python src/batch.py data/river --out results/cli
-    echo $LASTEXITCODE                            # exit code in PowerShell
 
-## What is in this repository
-- `src/bio_io.py` : FastaFormatError, read_fasta, read_csv_records, write_csv
-- `src/batch.py` : process_directory, read_fastq, mean_phred, main (command-line tool)
-- `tests/` : visible tests and my own tests (test_lab06_own.py)
-- `data/` : raw synthetic data, read-only (amplicons.fasta, river/, qc_records.csv, reads.fastq)
-- `results/` : files the tool writes (not committed)
-- `AI_USE_LOG.md` : my AI prompt log (or nil return)
+<Write the exact command. The course command is: python src/a1_triage.py data/variants.csv data/params.json results>
+<Say which files appear in results/.>
 
-## Exit codes of batch.py
-<Write what exit codes 0, 1 and 2 mean, in your own words.>
+## Test and lint
+
+```
+python -m pytest
+ruff check src
+```
+
+## Our parameters
+
+Our thresholds, priority genes and top_k are in data/params.json (<write the values here>).
+They are read at run time and passed to the functions; they are not typed into the rules.
+
+## Design
+
+<Link to docs/design.md and say in two sentences what it contains.>
+
+## Limitations
+
+<At least two honest limitations, for example: rules use depth, quality and impact only; the data are synthetic.>
+
+## Who did what
+
+| Member | Main contributions | Commits |
+|---|---|---|
+| <name> | <files or functions> | <number> |
+
+## AI use
+
+<One sentence: see AI_USE_LOG.md. Say whether the group used AI.>
