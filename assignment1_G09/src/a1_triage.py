@@ -44,7 +44,34 @@ def classify_variant(row: dict, params: dict) -> tuple[str, str]:
     Gene symbols and impact labels are compared after strip() and case folding.
     depth, quality and pos may arrive as text.
     """
-    raise NotImplementedError("TODO: implement classify_variant")
+    # Named thresholds come from params, never typed into the rules
+    min_depth = params["min_depth"]
+    min_quality = params["min_quality"]
+    priority_genes = {name.strip().casefold() for name in params["priority_genes"]}
+
+    # CSV values arrive as text, so convert numbers with int()
+    depth = int(row["depth"])
+    quality = int(row["quality"])
+    gene = row["gene"].strip()
+    impact = row["impact"].strip().casefold()
+
+    # Rules 1 and 2: quality control (exactly at the threshold passes)
+    if depth < min_depth:
+        return "exclude", f"rule 1 low depth: depth {depth} below min_depth {min_depth}"
+    if quality < min_quality:
+        return "exclude", f"rule 2 low quality: quality {quality} below min_quality {min_quality}"
+
+    is_priority_gene = gene.casefold() in priority_genes
+    is_strong_impact = impact in PRIORITY_IMPACTS
+
+    # Rules 3 to 6: gene and impact
+    if is_priority_gene and is_strong_impact:
+        return "prioritize", f"rule 3 priority gene {gene} with {impact} impact"
+    if is_priority_gene:
+        return "review", f"rule 4 priority gene {gene} with {impact} impact"
+    if is_strong_impact:
+        return "review", f"rule 5 other gene {gene} with {impact} impact"
+    return "exclude", f"rule 6 other gene {gene} with {impact} impact"
 
 
 def triage(rows: list[dict], params: dict) -> list[dict]:
@@ -52,7 +79,12 @@ def triage(rows: list[dict], params: dict) -> list[dict]:
 
     The input rows and params are never modified.
     """
-    raise NotImplementedError("TODO: implement triage")
+    results = []
+    for row in rows:
+        decision, reason = classify_variant(row, params)
+        # Build a NEW dict so the input row is never modified
+        results.append({**row, "decision": decision, "reason": reason})
+    return results
 
 
 def decision_counts(results: list[dict]) -> dict[str, int]:
