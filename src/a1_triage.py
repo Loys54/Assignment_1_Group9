@@ -18,6 +18,14 @@ CSV_COLUMNS = [
 ]
 CLI_ARGUMENTS = 3
 
+min_K= 0
+decision_rank = {
+    "prioritize": 0,
+    "review" : 1,
+}
+default_decision_rank = 2
+default_impact_rank = 4
+
 
 def load_variants(path) -> list[dict]:
     """Read variants.csv into a list of dicts. Every value stays text (Week 6 explains how)."""
@@ -155,7 +163,34 @@ def rank_variants(results: list[dict], k: int) -> list[dict]:
     Raises:
         ValueError: if k is negative.
     """
-    raise NotImplementedError("TODO: implement rank_variants")
+    if k < min_K:
+        raise ValueError("k must not be negative")
+
+    eligible = [row for row in results if row.get("decision") != "exclude"]
+
+    def sort_key(row: dict) -> tuple:
+        decision_val = row.get("decision", "").strip().casefold()
+        decision_priority = decision_rank   .get(decision_val, default_decision_rank)
+
+        impact_val = row.get("impact", "").strip().casefold()
+        impact_priority = (
+            IMPACT_ORDER.index(impact_val) if impact_val in IMPACT_ORDER else default_impact_rank
+        )
+
+        quality_val = int(row["quality"])
+        depth_val = int(row["depth"])
+        pos_val = int(row["pos"])
+
+        return (
+            decision_priority,
+            impact_priority,
+            -quality_val,
+            -depth_val,
+            pos_val,
+        )
+
+    ranked = sorted(eligible, key=sort_key)
+    return ranked[:k]
 
 
 def results_to_csv(results: list[dict]) -> str:
